@@ -39,14 +39,34 @@
 
 </script>
 
-<main class="flex justify-center items-center min-h-screen bg-black">
-  <div 
-    class="relative w-[800px] h-[480px] border-2 border-gray-600 overflow-hidden transition-colors duration-300"
-    style="background-color: {isTouched ? '#9ba6ad' : '#84896b'}"
-    on:touchstart={handleInteraction}
-    on:mousedown={handleInteraction}
-    on:click={handleInteraction}
-  >
+<style>
+  .thermostat-container {
+    /* Adjust this scale value to fit your specific screen */
+    transform: scale(0.5);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+    
+    /* Manual positioning - uncomment and adjust as needed */
+    position: relative;
+    top: -80px;
+    left: 0px;
+    
+    /* Or use margin for offset positioning */
+    /* margin-top: 20px; */
+    /* margin-left: 50px; */
+  }
+</style>
+
+<main class="flex justify-center items-center min-h-screen"       style="background-color: {isTouched ? '#9ba6ad' : '#84896b'}">
+  <!-- Scalable container wrapper -->
+  <div class="thermostat-container">
+    <div 
+      class="relative w-[800px] h-[480px] overflow-hidden transition-colors duration-300"
+      style="background-color: {isTouched ? '#9ba6ad' : '#84896b'}"
+      on:touchstart={handleInteraction}
+      on:mousedown={handleInteraction}
+      on:click={handleInteraction}
+    >
     <!-- Background image for positioning reference -->
     <!-- <img 
       src="/background.jpg" 
@@ -108,5 +128,6 @@
         {/if}
     </div>
   </div>
+</div>
   
 </main>
