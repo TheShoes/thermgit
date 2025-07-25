@@ -42,13 +42,13 @@
 <style>
   .thermostat-container {
     /* Adjust this scale value to fit your specific screen */
-    transform: scale(0.9);
+    transform: scale(0.85);
     transform-origin: center;
     transition: transform 0.3s ease;
     
     /* Manual positioning - uncomment and adjust as needed */
     position: relative;
-    top: -30px;
+    top: -20px;
     left: 0px;
     
     /* Or use margin for offset positioning */
