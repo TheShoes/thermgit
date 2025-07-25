@@ -42,7 +42,7 @@
 <style>
   .thermostat-container {
     /* Adjust this scale value to fit your specific screen */
-    transform: scale(0.5);
+    transform: scale(0.7);
     transform-origin: center;
     transition: transform 0.3s ease;
     
