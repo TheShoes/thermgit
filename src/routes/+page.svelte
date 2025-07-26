@@ -48,7 +48,7 @@
     
     /* Manual positioning - uncomment and adjust as needed */
     position: relative;
-    top: -10px;
+    top: -0px;
     left: 10px;
     
     /* Or use margin for offset positioning */
