@@ -48,8 +48,8 @@
     
     /* Manual positioning - uncomment and adjust as needed */
     position: relative;
-    top: -120px;
-    left: 30px;
+    top: -10px;
+    left: 10px;
     
     /* Or use margin for offset positioning */
     /* margin-top: 20px; */
