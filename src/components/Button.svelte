@@ -14,7 +14,9 @@
   
   async function playBeep() {
     try {
+      console.log('Playing beep sound...');
       await fetch('/api/beep', { method: 'POST' });
+      console.log('Beep played successfully');
     } catch (error) {
       console.error('Beep error:', error);
     }
