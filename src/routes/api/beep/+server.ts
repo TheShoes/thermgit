@@ -17,6 +17,7 @@ if (typeof process !== 'undefined' && process.versions?.node) {
     } else {
       console.log('GPIO not available:', error);
     }
+    buzzer = null; // Ensure buzzer is null on error
   }
 }
 
