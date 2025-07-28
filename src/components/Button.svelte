@@ -14,15 +14,30 @@
   
   async function playBeep() {
     try {
-      console.log('Playing beep sound...');
-      await fetch('/api/beep', { method: 'POST' });
-      console.log('Beep played successfully');
+      console.log('🔔 Button clicked - sending beep request...');
+      
+      const response = await fetch('/api/beep?duration=500&frequency=1500', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      console.log('📡 Beep response:', result);
+      
+      if (result.success) {
+        console.log('✓ Beep played successfully:', result.message);
+      } else {
+        console.error('✗ Beep failed:', result.message);
+      }
     } catch (error) {
-      console.error('Beep error:', error);
+      console.error('✗ Beep request error:', error);
     }
   }
 
   function handleClick() {
+    console.log('👆 Button handleClick triggered');
     playBeep();
     isActive = true;
     currentTextIndex = (currentTextIndex + 1) % textOptions.length;
@@ -33,7 +48,6 @@
     }, 300);
   }
 </script>
-
 
 <button 
   class="absolute w-[190px] h-[190px] flex items-center justify-center bg-transparent border-none cursor-pointer p-0 focus:outline-none "
@@ -60,6 +74,4 @@
       {textOptions[currentTextIndex].text}
     </span>
   </div>
-
-
 </button>

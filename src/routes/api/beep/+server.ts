@@ -3,50 +3,76 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 
 let buzzer: any = null;
 let isBeeping = false;
+let initializationPromise: Promise<void> | null = null;
 
-// Initialize GPIO only on server-side
-if (typeof process !== 'undefined' && process.versions?.node) {
-  try {
-    const { Gpio } = await import('onoff');
-    buzzer = new Gpio(76, 'out'); // Changed to GPIO 76 for passive buzzer
-    buzzer.writeSync(0); // Start LOW
-    console.log('Passive buzzer initialized on GPIO 76');
-  } catch (error) {
-    if (error && typeof error === 'object' && 'message' in error) {
-      console.log('GPIO not available:', (error as { message: string }).message);
-    } else {
-      console.log('GPIO not available:', error);
-    }
-    buzzer = null; // Ensure buzzer is null on error
+// Lazy initialization function
+async function initializeBuzzer() {
+  if (buzzer !== null || initializationPromise) {
+    return initializationPromise;
   }
+
+  initializationPromise = (async () => {
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      try {
+        const { Gpio } = await import('onoff');
+        buzzer = new Gpio(76, 'out');
+        buzzer.writeSync(0); // Start LOW
+        console.log('✓ Passive buzzer initialized on GPIO 76');
+      } catch (error) {
+        if (error && typeof error === 'object' && 'message' in error) {
+          console.log('✗ GPIO not available:', (error as { message: string }).message);
+        } else {
+          console.log('✗ GPIO not available:', error);
+        }
+        buzzer = null;
+      }
+    } else {
+      console.log('✗ Not running in Node.js environment');
+      buzzer = null;
+    }
+  })();
+
+  return initializationPromise;
 }
 
 // Function to create PWM signal for passive buzzer
 function passiveBuzzerBeep(duration: number = 1000, frequency: number = 1000): Promise<void> {
   return new Promise((resolve) => {
-    if (!buzzer || isBeeping) {
-      console.log('Buzzer not available or already beeping');
+    console.log(`🔊 Attempting beep: ${frequency}Hz for ${duration}ms`);
+    
+    if (!buzzer) {
+      console.log('✗ Buzzer not available');
+      resolve();
+      return;
+    }
+
+    if (isBeeping) {
+      console.log('⚠️ Already beeping, skipping');
       resolve();
       return;
     }
 
     isBeeping = true;
-    console.log(`Beeping at ${frequency}Hz for ${duration}ms`);
+    console.log(`🎵 Starting beep at ${frequency}Hz for ${duration}ms`);
 
     // Calculate half period in milliseconds (for PWM)
-    const halfPeriodMs = Math.round(500 / frequency);
+    const halfPeriodMs = Math.max(1, Math.round(500 / frequency));
     
     let state = 0;
+    let toggleCount = 0;
     const startTime = Date.now();
+    const expectedToggles = Math.floor(duration / halfPeriodMs);
 
     // Create PWM by toggling GPIO rapidly
     const interval = setInterval(() => {
-      if (Date.now() - startTime >= duration) {
+      const elapsed = Date.now() - startTime;
+      
+      if (elapsed >= duration) {
         // Stop beeping
         clearInterval(interval);
         buzzer.writeSync(0); // Ensure it ends LOW
         isBeeping = false;
-        console.log('Beep finished');
+        console.log(`✓ Beep finished (${toggleCount} toggles in ${elapsed}ms)`);
         resolve();
         return;
       }
@@ -54,50 +80,53 @@ function passiveBuzzerBeep(duration: number = 1000, frequency: number = 1000): P
       // Toggle state to create PWM
       state = state === 0 ? 1 : 0;
       buzzer.writeSync(state);
+      toggleCount++;
     }, halfPeriodMs);
   });
 }
 
 // Function for SOS pattern
-function playSOSPattern(): Promise<void> {
-  return new Promise(async (resolve) => {
-    console.log('Playing SOS pattern...');
-    
-    try {
-      // S - short beeps (3x)
-      for (let i = 0; i < 3; i++) {
-        await passiveBuzzerBeep(200, 1500);
-        await new Promise(r => setTimeout(r, 100)); // Short pause
-      }
-      
-      await new Promise(r => setTimeout(r, 200)); // Medium pause
-      
-      // O - long beeps (3x)
-      for (let i = 0; i < 3; i++) {
-        await passiveBuzzerBeep(600, 1500);
-        await new Promise(r => setTimeout(r, 100)); // Short pause
-      }
-      
-      await new Promise(r => setTimeout(r, 200)); // Medium pause
-      
-      // S - short beeps (3x)
-      for (let i = 0; i < 3; i++) {
-        await passiveBuzzerBeep(200, 1500);
-        await new Promise(r => setTimeout(r, 100)); // Short pause
-      }
-      
-      console.log('SOS complete');
-      resolve();
-    } catch (error) {
-      console.error('SOS pattern error:', error);
-      resolve();
+async function playSOSPattern(): Promise<void> {
+  console.log('📡 Playing SOS pattern...');
+  
+  try {
+    // S - short beeps (3x)
+    for (let i = 0; i < 3; i++) {
+      await passiveBuzzerBeep(200, 1500);
+      await new Promise(r => setTimeout(r, 100)); // Short pause
     }
-  });
+    
+    await new Promise(r => setTimeout(r, 200)); // Medium pause
+    
+    // O - long beeps (3x)
+    for (let i = 0; i < 3; i++) {
+      await passiveBuzzerBeep(600, 1500);
+      await new Promise(r => setTimeout(r, 100)); // Short pause
+    }
+    
+    await new Promise(r => setTimeout(r, 200)); // Medium pause
+    
+    // S - short beeps (3x)
+    for (let i = 0; i < 3; i++) {
+      await passiveBuzzerBeep(200, 1500);
+      await new Promise(r => setTimeout(r, 100)); // Short pause
+    }
+    
+    console.log('✓ SOS complete');
+  } catch (error) {
+    console.error('✗ SOS pattern error:', error);
+  }
 }
 
 export const POST: RequestHandler = async ({ url }) => {
+  console.log('🔔 POST /api/beep called');
+  
   try {
+    // Initialize buzzer if not already done
+    await initializeBuzzer();
+    
     if (!buzzer) {
+      console.log('✗ Buzzer initialization failed');
       return json({ success: false, message: 'Buzzer not available' });
     }
 
@@ -105,6 +134,8 @@ export const POST: RequestHandler = async ({ url }) => {
     const duration = parseInt(url.searchParams.get('duration') || '1000');
     const frequency = parseInt(url.searchParams.get('frequency') || '1000');
     const pattern = url.searchParams.get('pattern');
+
+    console.log(`📋 Parameters: duration=${duration}, frequency=${frequency}, pattern=${pattern || 'none'}`);
 
     // Handle different patterns
     if (pattern === 'sos') {
@@ -128,7 +159,7 @@ export const POST: RequestHandler = async ({ url }) => {
       });
     }
   } catch (error) {
-    console.error('Buzzer error:', error);
+    console.error('✗ Buzzer error:', error);
     const errorMessage = (error && typeof error === 'object' && 'message' in error)
       ? (error as { message: string }).message
       : String(error);
@@ -137,8 +168,14 @@ export const POST: RequestHandler = async ({ url }) => {
 };
 
 export const GET: RequestHandler = async ({ url }) => {
+  console.log('🔔 GET /api/beep called');
+  
   try {
+    // Initialize buzzer if not already done
+    await initializeBuzzer();
+    
     if (!buzzer) {
+      console.log('✗ Buzzer initialization failed');
       return json({ success: false, message: 'Buzzer not available' });
     }
 
@@ -146,6 +183,8 @@ export const GET: RequestHandler = async ({ url }) => {
     const duration = parseInt(url.searchParams.get('duration') || '500');
     const frequency = parseInt(url.searchParams.get('frequency') || '1000');
     const pattern = url.searchParams.get('pattern');
+
+    console.log(`📋 Parameters: duration=${duration}, frequency=${frequency}, pattern=${pattern || 'none'}`);
 
     // Handle different patterns
     if (pattern === 'sos') {
@@ -184,7 +223,7 @@ export const GET: RequestHandler = async ({ url }) => {
       });
     }
   } catch (error) {
-    console.error('Buzzer error:', error);
+    console.error('✗ Buzzer error:', error);
     const errorMessage = (error && typeof error === 'object' && 'message' in error)
       ? (error as { message: string }).message
       : String(error);
@@ -193,19 +232,19 @@ export const GET: RequestHandler = async ({ url }) => {
 };
 
 // Cleanup on process exit
-if (typeof process !== 'undefined' && process.versions?.node && buzzer) {
-  process.on('exit', () => {
-    if (buzzer) {
-      buzzer.writeSync(0);
-      buzzer.unexport();
-    }
-  });
-  
-  process.on('SIGINT', () => {
-    if (buzzer) {
-      buzzer.writeSync(0);
-      buzzer.unexport();
-    }
-    process.exit();
-  });
-}
+process?.on?.('exit', () => {
+  if (buzzer) {
+    console.log('🧹 Cleaning up buzzer on exit');
+    buzzer.writeSync(0);
+    buzzer.unexport();
+  }
+});
+
+process?.on?.('SIGINT', () => {
+  if (buzzer) {
+    console.log('🧹 Cleaning up buzzer on SIGINT');
+    buzzer.writeSync(0);
+    buzzer.unexport();
+  }
+  process.exit();
+});
