@@ -1,4 +1,4 @@
-const { Gpio } = require('onoff');
+import { Gpio } from 'onoff';
 
 console.log('Testing GPIO 76...');
 
@@ -25,5 +25,3 @@ try {
 } catch (error) {
   console.error('GPIO error:', error.message);
 }
-EOF
-
