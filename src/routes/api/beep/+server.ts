@@ -36,7 +36,7 @@ async function initializeBuzzer() {
 }
 
 // Function to create PWM signal for passive buzzer
-function passiveBuzzerBeep(duration: number = 1000, frequency: number = 1000): Promise<void> {
+function passiveBuzzerBeep(duration: number = 150, frequency: number = 2000): Promise<void> {
   return new Promise((resolve) => {
     console.log(`🔊 Attempting beep: ${frequency}Hz for ${duration}ms`);
     
@@ -55,13 +55,13 @@ function passiveBuzzerBeep(duration: number = 1000, frequency: number = 1000): P
     isBeeping = true;
     console.log(`🎵 Starting beep at ${frequency}Hz for ${duration}ms`);
 
-    // Calculate half period in milliseconds (for PWM)
-    const halfPeriodMs = Math.max(1, Math.round(500 / frequency));
+    // Calculate half period in microseconds for better precision
+    const halfPeriodUs = Math.max(100, Math.round(500000 / frequency)); // microseconds
+    const halfPeriodMs = halfPeriodUs / 1000; // convert to milliseconds for setInterval
     
     let state = 0;
     let toggleCount = 0;
     const startTime = Date.now();
-    const expectedToggles = Math.floor(duration / halfPeriodMs);
 
     // Create PWM by toggling GPIO rapidly
     const interval = setInterval(() => {
@@ -131,8 +131,8 @@ export const POST: RequestHandler = async ({ url }) => {
     }
 
     // Get parameters from request
-    const duration = parseInt(url.searchParams.get('duration') || '1000');
-    const frequency = parseInt(url.searchParams.get('frequency') || '1000');
+    const duration = parseInt(url.searchParams.get('duration') || '150');
+    const frequency = parseInt(url.searchParams.get('frequency') || '2000');
     const pattern = url.searchParams.get('pattern');
 
     console.log(`📋 Parameters: duration=${duration}, frequency=${frequency}, pattern=${pattern || 'none'}`);
@@ -180,8 +180,8 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 
     // Get parameters from URL query
-    const duration = parseInt(url.searchParams.get('duration') || '500');
-    const frequency = parseInt(url.searchParams.get('frequency') || '1000');
+    const duration = parseInt(url.searchParams.get('duration') || '150');
+    const frequency = parseInt(url.searchParams.get('frequency') || '2000');
     const pattern = url.searchParams.get('pattern');
 
     console.log(`📋 Parameters: duration=${duration}, frequency=${frequency}, pattern=${pattern || 'none'}`);
