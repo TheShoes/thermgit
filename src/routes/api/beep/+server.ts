@@ -35,10 +35,10 @@ async function initializeBuzzer() {
   return initializationPromise;
 }
 
-// Function to create PWM signal for passive buzzer
-function passiveBuzzerBeep(duration: number = 150, frequency: number = 2000): Promise<void> {
+// Function for passive buzzer with optimized PWM
+function passiveBuzzerBeep(duration: number = 200, frequency: number = 2000): Promise<void> {
   return new Promise((resolve) => {
-    console.log(`🔊 Attempting beep: ${frequency}Hz for ${duration}ms`);
+    console.log(`🔊 Passive buzzer beep: ${frequency}Hz for ${duration}ms`);
     
     if (!buzzer) {
       console.log('✗ Buzzer not available');
@@ -53,39 +53,84 @@ function passiveBuzzerBeep(duration: number = 150, frequency: number = 2000): Pr
     }
 
     isBeeping = true;
-    console.log(`🎵 Starting beep at ${frequency}Hz for ${duration}ms`);
-
-    // Calculate half period in microseconds for better precision
-    const halfPeriodUs = Math.max(100, Math.round(500000 / frequency)); // microseconds
-    const halfPeriodMs = halfPeriodUs / 1000; // convert to milliseconds for setInterval
     
+    // Calculate period in microseconds for better precision
+    const periodMicros = 1000000 / frequency;
+    const halfPeriodMicros = periodMicros / 2;
+    
+    // Use setTimeout with precise timing
     let state = 0;
-    let toggleCount = 0;
+    let cycles = 0;
+    const totalCycles = Math.floor((duration * 1000) / periodMicros); // duration in microseconds / period
     const startTime = Date.now();
-
-    // Create PWM by toggling GPIO rapidly
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      
-      if (elapsed >= duration) {
-        // Stop beeping
-        clearInterval(interval);
-        buzzer.writeSync(0); // Ensure it ends LOW
+    
+    const toggle = () => {
+      if (cycles >= totalCycles) {
+        buzzer.writeSync(0); // End on LOW
         isBeeping = false;
-        console.log(`✓ Beep finished (${toggleCount} toggles in ${elapsed}ms)`);
+        const elapsed = Date.now() - startTime;
+        console.log(`✓ Passive buzzer finished (${cycles} cycles in ${elapsed}ms)`);
         resolve();
         return;
       }
-
-      // Toggle state to create PWM
+      
       state = state === 0 ? 1 : 0;
       buzzer.writeSync(state);
-      toggleCount++;
-    }, halfPeriodMs);
+      cycles++;
+      
+      // Schedule next toggle with precise timing
+      setTimeout(toggle, halfPeriodMicros / 1000); // Convert microseconds to milliseconds
+    };
+    
+    toggle();
   });
 }
 
-// Function for SOS pattern
+// Alternative simpler beep function with fixed duty cycle
+function simpleBuzzerBeep(duration: number = 150, frequency: number = 2000): Promise<void> {
+  return new Promise((resolve) => {
+    console.log(`🔊 Simple beep: ${frequency}Hz for ${duration}ms`);
+    
+    if (!buzzer || isBeeping) {
+      console.log('✗ Buzzer not available or busy');
+      resolve();
+      return;
+    }
+
+    isBeeping = true;
+
+    // Calculate timing for 50% duty cycle
+    const periodMs = 1000 / frequency;
+    const onTimeMs = periodMs / 2;
+    const offTimeMs = periodMs / 2;
+    
+    let cycles = 0;
+    const totalCycles = Math.floor(duration / periodMs);
+    
+    const doCycle = () => {
+      if (cycles >= totalCycles) {
+        buzzer.writeSync(0);
+        isBeeping = false;
+        console.log(`✓ Simple beep finished (${cycles} cycles)`);
+        resolve();
+        return;
+      }
+      
+      // ON phase
+      buzzer.writeSync(1);
+      setTimeout(() => {
+        // OFF phase
+        buzzer.writeSync(0);
+        setTimeout(() => {
+          cycles++;
+          doCycle();
+        }, offTimeMs);
+      }, onTimeMs);
+    };
+    
+    doCycle();
+  });
+}
 async function playSOSPattern(): Promise<void> {
   console.log('📡 Playing SOS pattern...');
   
@@ -197,19 +242,40 @@ export const GET: RequestHandler = async ({ url }) => {
         pattern: 'SOS'
       });
     } else if (pattern === 'test') {
-      // Play different frequencies
+      // Play different frequencies with both methods
       setTimeout(async () => {
-        await passiveBuzzerBeep(300, 500);  // Low
-        await new Promise(r => setTimeout(r, 200));
-        await passiveBuzzerBeep(300, 1000); // Medium
-        await new Promise(r => setTimeout(r, 200));
-        await passiveBuzzerBeep(300, 2000); // High
+        console.log('Testing high-precision method:');
+        await passiveBuzzerBeep(200, 800);  // Low
+        await new Promise(r => setTimeout(r, 300));
+        await passiveBuzzerBeep(200, 1500); // Medium
+        await new Promise(r => setTimeout(r, 300));
+        await passiveBuzzerBeep(200, 2500); // High
+        
+        await new Promise(r => setTimeout(r, 500));
+        
+        console.log('Testing simple method:');
+        await simpleBuzzerBeep(200, 800);   // Low
+        await new Promise(r => setTimeout(r, 300));
+        await simpleBuzzerBeep(200, 1500);  // Medium
+        await new Promise(r => setTimeout(r, 300));
+        await simpleBuzzerBeep(200, 2500);  // High
       }, 0);
       
       return json({ 
         success: true, 
-        message: 'Playing test tones (low, medium, high)',
+        message: 'Playing test tones with both methods',
         pattern: 'test'
+      });
+    } else if (pattern === 'simple') {
+      // Use the simpler method
+      await simpleBuzzerBeep(duration, frequency);
+      return json({ 
+        success: true, 
+        message: `Simple beeped for ${duration}ms at ${frequency}Hz`,
+        duration,
+        frequency,
+        gpio: 76,
+        method: 'simple'
       });
     } else {
       // Regular beep

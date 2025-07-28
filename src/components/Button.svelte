@@ -16,7 +16,7 @@
     try {
       console.log('🔔 Button clicked - sending beep request...');
       
-      const response = await fetch('/api/beep?duration=150&frequency=2000', { 
+      const response = await fetch('/api/beep?duration=200&frequency=2000', { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
