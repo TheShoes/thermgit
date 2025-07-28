@@ -7,7 +7,7 @@ let buzzer: any = null;
 if (typeof process !== 'undefined' && process.versions?.node) {
   try {
     const { Gpio } = require('onoff');
-    buzzer = new Gpio(18, 'out');
+    buzzer = new Gpio(16, 'out');
   } catch (error) {
     if (error && typeof error === 'object' && 'message' in error) {
       console.log('GPIO not available:', (error as { message: string }).message);
