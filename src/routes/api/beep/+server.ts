@@ -7,7 +7,7 @@ let isBeeping = false;
 // Initialize GPIO only on server-side
 if (typeof process !== 'undefined' && process.versions?.node) {
   try {
-    const { Gpio } = require('onoff');
+    const { Gpio } = await import('onoff');
     buzzer = new Gpio(76, 'out'); // Changed to GPIO 76 for passive buzzer
     buzzer.writeSync(0); // Start LOW
     console.log('Passive buzzer initialized on GPIO 76');
