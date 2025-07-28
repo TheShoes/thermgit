@@ -12,7 +12,16 @@
   let currentTextIndex = 0;
   let isActive = false;
   
+  async function playBeep() {
+    try {
+      await fetch('/api/beep', { method: 'POST' });
+    } catch (error) {
+      console.error('Beep error:', error);
+    }
+  }
+
   function handleClick() {
+    playBeep();
     isActive = true;
     currentTextIndex = (currentTextIndex + 1) % textOptions.length;
     

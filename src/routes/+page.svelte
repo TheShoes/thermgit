@@ -7,7 +7,7 @@
 
   let isAdjusting = false;
   let isTouched = false;
-  let touchTimeout: number;
+  let touchTimeout: ReturnType<typeof setTimeout>;
 
   function handleEnterAdjustMode() {
     isAdjusting = true;
