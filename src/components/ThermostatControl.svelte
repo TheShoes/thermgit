@@ -51,19 +51,21 @@
   }
 
   function handleUpClick() {
+    playBeep();
     if (!isAdjusting) {
       isAdjusting = true;
       onEnterAdjustMode();
-      playBeep();
+      
     }
     targetTemp += 1;
   }
   
   function handleDownClick() {
+          playBeep();
+
     if (!isAdjusting) {
       isAdjusting = true;
       onEnterAdjustMode();
-      playBeep();
     }
     targetTemp -= 1;
   }
@@ -72,6 +74,7 @@
     // Go back to showing actual house temp and let it work toward target
     isAdjusting = false;
     onExitAdjustMode();
+    playBeep();
   }
   
   onMount(() => {
