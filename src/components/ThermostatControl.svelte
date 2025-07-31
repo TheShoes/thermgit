@@ -26,10 +26,35 @@
     }, 1000);
   }
   
+    async function playBeep() {
+    try {
+      console.log('🔔 Button clicked - sending beep request...');
+      
+      const response = await fetch('/api/beep?duration=200&frequency=2000', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      console.log('📡 Beep response:', result);
+      
+      if (result.success) {
+        console.log('✓ Beep played successfully:', result.message);
+      } else {
+        console.error('✗ Beep failed:', result.message);
+      }
+    } catch (error) {
+      console.error('✗ Beep request error:', error);
+    }
+  }
+
   function handleUpClick() {
     if (!isAdjusting) {
       isAdjusting = true;
       onEnterAdjustMode();
+      playBeep();
     }
     targetTemp += 1;
   }
@@ -38,6 +63,7 @@
     if (!isAdjusting) {
       isAdjusting = true;
       onEnterAdjustMode();
+      playBeep();
     }
     targetTemp -= 1;
   }
