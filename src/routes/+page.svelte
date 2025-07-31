@@ -49,7 +49,7 @@
     /* Manual positioning - uncomment and adjust as needed */
     position: relative;
     top: 9px;
-    left: 45px;
+    left: 40px;
     
     /* Or use margin for offset positioning */
     /* margin-top: 20px; */
